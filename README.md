@@ -104,4 +104,4 @@ Launch the Streamlit dashboard:
 ```powershell
 python -m streamlit run app.py
 ```
-A browser window will open automatically pointing to `http://localhost:8501`.
+A browser window will open automatically pointing to `https://lifebridge-ai-jyvejvpi7uz5tdxuyrnaon.streamlit.app/`.
