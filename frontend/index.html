@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeBridge AI - EOC Command Center</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Drill Siren Flash Overlay -->
+    <div id="siren-overlay" class="siren-overlay">
+        <div class="siren-alert-box">
+            <span class="siren-warning-icon">🚨</span>
+            <h1 class="siren-title">CRITICAL INCIDENT ALERT DRILL</h1>
+            <p class="siren-msg">EOC ALERT BROADCAST: TACTICAL DRILL IN PROGRESS. CONFIRM STATUS AND SAFETY ACTIONS IMMEDIATELY.</p>
+            <button class="btn btn-danger" onclick="toggleSirenDrill(false)">Acknowledge Alert</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">🛡️</div>
+                <div class="logo-text">
+                    <h2>LIFEBRIDGE AI</h2>
+                    <p>Emergency Operations Center</p>
+                </div>
+            </div>
+            
+            <hr class="divider">
+            
+            <!-- EOC Config Settings -->
+            <div class="sidebar-section">
+                <h3>🛠️ EOC Configuration</h3>
+                <div class="form-group">
+                    <label for="gemini-key">Gemini API Security Key</label>
+                    <input type="password" id="gemini-key" class="form-control" placeholder="Enter key (saves locally)...">
+                    <button id="save-key-btn" class="btn btn-primary btn-sm mt-2 w-100">Save API Key</button>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <!-- Navigation Menu -->
+            <nav class="sidebar-nav">
+                <h3>🗺️ Command Modules</h3>
+                <ul>
+                    <li class="nav-item active" data-page="dashboard-page">
+                        <span class="nav-icon">📊</span> EOC Dashboard
+                    </li>
+                    <li class="nav-item" data-page="map-page">
+                        <span class="nav-icon">🗺️</span> Live Disaster Map
+                    </li>
+                    <li class="nav-item" data-page="assistant-page">
+                        <span class="nav-icon">🤖</span> AI Crisis Assistant
+                    </li>
+                    <li class="nav-item" data-page="shelters-page">
+                        <span class="nav-icon">🏥</span> Shelters & Resources
+                    </li>
+                    <li class="nav-item" data-page="helpline-page">
+                        <span class="nav-icon">📞</span> Helpline & First Aid
+                    </li>
+                    <li class="nav-item" data-page="volunteer-page">
+                        <span class="nav-icon">🤝</span> Volunteer Hub
+                    </li>
+                </ul>
+            </nav>
+
+            <hr class="divider">
+
+            <!-- Incident Preset Selector -->
+            <div class="sidebar-section">
+                <h3>📋 EOC Incident Presets</h3>
+                <div class="form-group">
+                    <select id="preset-select" class="form-control">
+                        <option value="">Select emergency template...</option>
+                        <option value="mumbai">Mumbai Monsoon Flooding (Kurla, MH)</option>
+                        <option value="himalayan">Himalayan Cloudburst (Rudraprayag, UK)</option>
+                        <option value="cyclone">Cyclone Landfall (Puri, Odisha)</option>
+                        <option value="vizag">Vizag Chemical Gas Leak (AP)</option>
+                        <option value="delhi">Severe Delhi Heatwave (New Delhi)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <p>EOC Platform V2.5.0</p>
+                <p>Status: <span class="text-success">● Connected</span></p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Top Alert Ticker Bar -->
+            <div class="ticker-container">
+                <span class="ticker-alert-label">⚠️ WARNING</span>
+                <div class="ticker-wrap">
+                    <div id="ticker-text" class="ticker">EOC ALERTS: SYSTEM ONLINE. STANDBY FOR COORDINATION — DIAL 112 FOR EMERGENCY DISPATCH.</div>
+                </div>
+            </div>
+
+            <!-- PAGE 1: EOC DASHBOARD -->
+            <section id="dashboard-page" class="page-section active">
+                <div class="page-header">
+                    <h1 class="page-title">EOC COMMAND DASHBOARD</h1>
+                    <p class="page-subtitle">Operational statistics and active threat feeds across regional command zones.</p>
+                </div>
+
+                <!-- Stats Cards Row -->
+                <div class="stats-grid">
+                    <div class="stat-card border-danger">
+                        <div class="stat-value text-danger" id="dashboard-threat-level">CRITICAL</div>
+                        <div class="stat-label">Active Threat Level</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value text-success" id="dashboard-shelters-count">142</div>
+                        <div class="stat-label">Active Multipurpose Shelters</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value text-warning" id="dashboard-rescues-count">7 RESCUES</div>
+                        <div class="stat-label">NDRF Operations In Progress</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value text-info" id="dashboard-network-uptime">89.2%</div>
+                        <div class="stat-label">Telecom Network Uptime</div>
+                    </div>
+                </div>
+
+                <!-- Live Telemetry & Alarm Section -->
+                <div class="layout-grid">
+                    <div class="card col-span-2">
+                        <div class="card-header">
+                            <h2 class="card-title">📈 Regional Resource Allocation Status</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="resourceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🚨 System Action Room</h2>
+                        </div>
+                        <div class="card-body action-room-body">
+                            <div class="action-card text-center">
+                                <h3>Sound EOC Warning Siren</h3>
+                                <p class="text-muted small mb-3">Initiate emergency broadcast sirens & visual alarm overlay across all EOC terminals.</p>
+                                <button class="btn btn-danger w-100 py-3" id="siren-trigger-btn">
+                                    <span class="btn-icon">🔊</span> Trigger Warning Siren
+                                </button>
+                            </div>
+                            
+                            <hr class="card-divider">
+
+                            <div class="weather-widget">
+                                <h3 class="weather-title">🌦️ Local Weather & Telemetry Feed</h3>
+                                <div class="weather-grid" id="weather-grid-content">
+                                    <!-- Weather updates injected here -->
+                                    <div class="weather-item">
+                                        <span class="w-loc">Mumbai</span>
+                                        <span class="w-temp">29°C</span>
+                                        <span class="w-desc">Heavy Monsoon Rain</span>
+                                    </div>
+                                    <div class="weather-item">
+                                        <span class="w-loc">Delhi</span>
+                                        <span class="w-temp">44°C</span>
+                                        <span class="w-desc">Heatwave Warning</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feed and Info Row -->
+                <div class="layout-grid mt-4">
+                    <div class="card col-span-2">
+                        <div class="card-header">
+                            <h2 class="card-title">🛡️ EOC Command Center Details</h2>
+                        </div>
+                        <div class="card-body">
+                            <p>The <strong>LifeBridge AI Command Center</strong> coordinates specialized sub-agents to synthesize custom disaster mitigation and safety plans.</p>
+                            <ul>
+                                <li>Use the <strong>Sidebar Menu</strong> to toggle command modules.</li>
+                                <li>Choose an <strong>Incident Preset</strong> to load localized templates (e.g. Mumbai Monsoon Flooding, Vizag Gas Leak).</li>
+                                <li>Go to <strong>AI Crisis Assistant</strong> to invoke the Supervisor and generate a tailored emergency action strategy.</li>
+                                <li>Check the <strong>Live Disaster Map</strong> to view active road closures, rescue markers, and plan safe evacuation routes.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">⚡ Live Incident Bulletin Feed</h2>
+                        </div>
+                        <div class="card-body">
+                            <ul class="bulletin-list" id="bulletin-list-container">
+                                <!-- Bulletin feed updates -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 2: LIVE DISASTER MAP -->
+            <section id="map-page" class="page-section">
+                <div class="page-header">
+                    <h1 class="page-title">LIVE EOC HAZARD & SHELTER MAP</h1>
+                    <p class="page-subtitle">Interactive map visualization displaying rescue locations, active warning zones, and shelter points.</p>
+                </div>
+
+                <div class="map-layout">
+                    <!-- Leaflet Map Container -->
+                    <div class="map-wrapper card">
+                        <div id="map"></div>
+                    </div>
+
+                    <!-- Map Overlay Control Panel -->
+                    <div class="map-controls-panel card">
+                        <div class="card-header">
+                            <h2 class="card-title">🟢 Safe Evacuation Route Planner</h2>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small">Input route parameters to locate safe evacuation corridors avoiding known blocked hazards.</p>
+                            
+                            <div class="form-group mb-3">
+                                <label for="route-start">Starting Point</label>
+                                <select id="route-start" class="form-control">
+                                    <option value="">Choose Start Location...</option>
+                                    <option value="kurla-stn">Kurla Railway Station</option>
+                                    <option value="puri-beach">Puri Sea Beach Road</option>
+                                    <option value="rudra-village">Rudraprayag Isolated Guest House</option>
+                                    <option value="vizag-colony">Vizag Residential Colony</option>
+                                    <option value="delhi-sec6">Dwarka Sector 6 Residents</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="route-end">Evacuation Shelter</label>
+                                <select id="route-end" class="form-control">
+                                    <option value="">Choose Destination Shelter...</option>
+                                    <option value="kurla-school">Kurla Municipal School Relief Camp</option>
+                                    <option value="puri-shelter">Puri Multipurpose Cyclone Shelter</option>
+                                    <option value="rudra-hall">Rudraprayag Town Assembly Hall</option>
+                                    <option value="vizag-shelter">Vizag Industrial Zone Isolation Shelter</option>
+                                    <option value="delhi-sports">Dwarka Sports Complex Cooling Camp</option>
+                                </select>
+                            </div>
+
+                            <button id="calculate-route-btn" class="btn btn-primary w-100 mb-2">🚗 Generate Safe Evacuation Path</button>
+                            <button id="reset-route-btn" class="btn btn-outline w-100">🔄 Reset Route & Overlays</button>
+                            
+                            <hr class="card-divider">
+                            
+                            <h3>⚠️ Local Road & Hazard Closures</h3>
+                            <div class="road-blockages-list" id="blockages-list">
+                                <div class="blockage-item text-danger">Select a starting point or load an Incident Preset to view hazard warnings.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 3: AI CRISIS ASSISTANT -->
+            <section id="assistant-page" class="page-section">
+                <div class="page-header">
+                    <h1 class="page-title">EOC AI COMMAND ASSISTANT</h1>
+                    <p class="page-subtitle">Invoke LifeBridge AI's modular agents to generate a detailed Emergency Action Plan.</p>
+                </div>
+
+                <div class="layout-grid">
+                    <!-- Form Input Card -->
+                    <div class="card col-span-2">
+                        <div class="card-header">
+                            <h2 class="card-title">📥 Dispatch Details</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group mb-3">
+                                <label for="disaster-type">Disaster Event Type</label>
+                                <input type="text" id="disaster-type" class="form-control" placeholder="e.g. Cyclone Landfall, Monsoon Flooding...">
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                <label for="disaster-location">Incident Location</label>
+                                <input type="text" id="disaster-location" class="form-control" placeholder="e.g. Kurla, Mumbai, Maharashtra...">
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="disaster-situation">Crisis Description & Intel</label>
+                                <textarea id="disaster-situation" class="form-control" rows="5" placeholder="Specify entrapment details, power statuses, injuries, and logistics..."></textarea>
+                            </div>
+
+                            <div class="row align-items-end">
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="disaster-severity">Assessment Severity Scale</label>
+                                        <select id="disaster-severity" class="form-control">
+                                            <option value="Low">Low</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="High" selected>High</option>
+                                            <option value="Critical">Critical</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <button id="run-ai-btn" class="btn btn-danger w-100 py-3">🚨 Compile Emergency Action Plan</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Agent Status Panel Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🤖 Agent Orchestration Flow</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="orchestration-flow" id="orchestration-flow-container">
+                                <div class="agent-status-box" id="status-supervisor">
+                                    <span class="agent-name">Supervisor Agent</span>
+                                    <span class="badge badge-pending" id="badge-supervisor">Pending</span>
+                                </div>
+                                <div class="agent-status-box" id="status-assessment">
+                                    <span class="agent-name">Disaster Assessment Agent</span>
+                                    <span class="badge badge-pending" id="badge-assessment">Pending</span>
+                                </div>
+                                <div class="agent-status-box" id="status-medical">
+                                    <span class="agent-name">Medical Agent</span>
+                                    <span class="badge badge-pending" id="badge-medical">Pending</span>
+                                </div>
+                                <div class="agent-status-box" id="status-resource">
+                                    <span class="agent-name">Resource Agent</span>
+                                    <span class="badge badge-pending" id="badge-resource">Pending</span>
+                                </div>
+                                <div class="agent-status-box" id="status-shelter">
+                                    <span class="agent-name">Shelter Agent</span>
+                                    <span class="badge badge-pending" id="badge-shelter">Pending</span>
+                                </div>
+                                <div class="agent-status-box" id="status-communication">
+                                    <span class="agent-name">Communication Agent</span>
+                                    <span class="badge badge-pending" id="badge-communication">Pending</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Output Content Area -->
+                <div class="card mt-4 hidden" id="ai-output-container">
+                    <div class="card-header">
+                        <h2 class="card-title">🛡️ EOC ACTION PLATFORM OUTPUT</h2>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Navigation Tabs for AI Output -->
+                        <div class="tabs-header">
+                            <button class="tab-btn active" data-tab="tab-plan">🛡️ EOC Incident Plan</button>
+                            <button class="tab-btn" data-tab="tab-checklist">🎒 Logistical Checklists</button>
+                            <button class="tab-btn" data-tab="tab-comms">💬 Message Templates</button>
+                            <button class="tab-btn" data-tab="tab-logs">🤖 Sub-Agent Logs</button>
+                            <button class="tab-btn" data-tab="tab-broadcast">🔊 EOC Broadcast (TTS)</button>
+                        </div>
+
+                        <!-- Tab Content Boxes -->
+                        <div class="tabs-content">
+                            <!-- Tab 1: Incident Plan -->
+                            <div class="tab-pane active" id="tab-plan">
+                                <div class="markdown-body" id="synthesized-plan-markdown">
+                                    <!-- Synthesis output -->
+                                </div>
+                                <hr class="card-divider">
+                                <button class="btn btn-success w-100" id="export-plan-btn">💾 Export Action Plan (Markdown)</button>
+                            </div>
+
+                            <!-- Tab 2: Checklists -->
+                            <div class="tab-pane" id="tab-checklist">
+                                <h3>🎒 Interactive EOC Supply Checklists</h3>
+                                <p class="text-muted small mb-3">Check off supplies and medical items as they are collected/packed:</p>
+                                <div class="interactive-checklist-box" id="interactive-checklist-items">
+                                    <!-- Extracted checkboxes go here -->
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: Communications Templates -->
+                            <div class="tab-pane" id="tab-comms">
+                                <h3>💬 Copy-Paste Ready SOS Templates</h3>
+                                <div class="markdown-body" id="comms-templates-output">
+                                    <!-- Communications output -->
+                                </div>
+                            </div>
+
+                            <!-- Tab 4: Sub-Agent Logs -->
+                            <div class="tab-pane" id="tab-logs">
+                                <h3>🤖 Raw Expert Sub-Agent Output Logs</h3>
+                                <div class="accordion" id="subagent-logs-accordion">
+                                    <!-- Collapse entries injected here -->
+                                </div>
+                            </div>
+
+                            <!-- Tab 5: Broadcast / TTS -->
+                            <div class="tab-pane" id="tab-broadcast">
+                                <h3>🔊 Audio Broadcast System</h3>
+                                <p class="text-muted mb-4">Broadcast key instructions from the EOC Action Plan using Web Text-to-Speech guides.</p>
+                                <div class="tts-broadcast-control-card">
+                                    <p class="broadcast-alert-header">🔊 EOC Broadcast Voice Guide</p>
+                                    <div class="tts-actions mt-3">
+                                        <button class="btn btn-primary py-3 px-4" id="tts-play-btn">🔊 Broadcast Plan</button>
+                                        <button class="btn btn-danger py-3 px-4" id="tts-stop-btn">🛑 Stop Broadcast</button>
+                                    </div>
+                                    <div class="tts-voice-waves mt-3 hidden" id="tts-waves">
+                                        <div class="wave-bar"></div>
+                                        <div class="wave-bar"></div>
+                                        <div class="wave-bar"></div>
+                                        <div class="wave-bar"></div>
+                                        <div class="wave-bar"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 4: SHELTERS & RESOURCES -->
+            <section id="shelters-page" class="page-section">
+                <div class="page-header">
+                    <h1 class="page-title">🏥 SHELTER & RESOURCE INVENTORY</h1>
+                    <p class="page-subtitle">Simulated live database of designated disaster shelters, current occupancy rates, and resources.</p>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h2 class="card-title">📋 Shelter Status Directory</h2>
+                        <div class="form-group mb-0" style="min-width: 250px;">
+                            <select id="shelter-state-filter" class="form-control">
+                                <option value="Maharashtra">Filter: Maharashtra Zone</option>
+                                <option value="Odisha">Filter: Odisha Zone</option>
+                                <option value="Uttarakhand">Filter: Uttarakhand Zone</option>
+                                <option value="Delhi">Filter: Delhi Zone</option>
+                                <option value="Andhra Pradesh">Filter: Andhra Pradesh Zone</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="shelter-table">
+                                <thead>
+                                    <tr>
+                                        <th>Relief Shelter Name</th>
+                                        <th>Occupancy Capacity</th>
+                                        <th>Drinking Water Resource</th>
+                                        <th>Food Packets Reserve</th>
+                                        <th>Medical Officer Present</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shelter-table-body">
+                                    <!-- Injected by app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resource Request Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">📦 Request Resource Allocation</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-4">Submit requests for relief supplies to the EOC dispatch queue. Allocations will be verified dynamically.</p>
+                        <form id="resource-request-form" onsubmit="event.preventDefault(); submitResourceRequest();">
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="req-shelter">Target Shelter Location</label>
+                                        <select id="req-shelter" class="form-control" required>
+                                            <!-- Loaded matching state by app.js -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="req-type">Resource Category Needed</label>
+                                        <select id="req-type" class="form-control" required>
+                                            <option value="Drinking Water Tanks">Drinking Water Tanks</option>
+                                            <option value="Dry Ration Packs">Dry Ration Packs</option>
+                                            <option value="Trauma Medical Supplies">Trauma Medical Supplies</option>
+                                            <option value="Blankets & Linens">Blankets & Linens</option>
+                                            <option value="Generators / Battery Banks">Generators / Battery Banks</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="req-qty">Required Quantity (units)</label>
+                                        <input type="number" id="req-qty" class="form-control" min="1" value="50" required>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-group">
+                                        <label for="req-urgency">Urgency Priority</label>
+                                        <select id="req-urgency" class="form-control" required>
+                                            <option value="Routine">Routine</option>
+                                            <option value="High Priority">High Priority</option>
+                                            <option value="CRITICAL / LIFE THREAT">CRITICAL / LIFE THREAT</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">🚀 Dispatch Resource Request</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 5: HELPLINE & FIRST AID -->
+            <section id="helpline-page" class="page-section">
+                <div class="page-header">
+                    <h1 class="page-title">📞 EMERGENCY DIRECTORY & FIRST AID CARDS</h1>
+                    <p class="page-subtitle">National/State helpline lists combined with interactive first-aid reference guides.</p>
+                </div>
+
+                <div class="layout-grid">
+                    <!-- Helpline Directory Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🚨 National Emergency Dispatch</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="eoc-helpline-box">
+                                <div class="helpline-alert-val">Universal Dispatch: 112</div>
+                                <p class="text-muted small">Dial 112 for all police, fire, health, and disaster response services in India.</p>
+                            </div>
+                            
+                            <h3>🏢 Central Emergency Agencies</h3>
+                            <ul class="directory-list">
+                                <li>
+                                    <span class="agency-title">NDMA Control Center</span>
+                                    <span class="agency-num">1078 / 011-26701728</span>
+                                    <button class="btn-copy-num" onclick="copyText('1078')">📋 Copy</button>
+                                </li>
+                                <li>
+                                    <span class="agency-title">NDRF Dispatch Control</span>
+                                    <span class="agency-num">011-24363260 / 9711077372</span>
+                                    <button class="btn-copy-num" onclick="copyText('011-24363260')">📋 Copy</button>
+                                </li>
+                                <li>
+                                    <span class="agency-title">IMD Weather Enquiry</span>
+                                    <span class="agency-num">1800-180-1717</span>
+                                    <button class="btn-copy-num" onclick="copyText('1800-180-1717')">📋 Copy</button>
+                                </li>
+                                <li>
+                                    <span class="agency-title">Highway Emergency Services</span>
+                                    <span class="agency-num">1033</span>
+                                    <button class="btn-copy-num" onclick="copyText('1033')">📋 Copy</button>
+                                </li>
+                            </ul>
+
+                            <hr class="card-divider">
+
+                            <h3>📞 State Disaster Control Rooms</h3>
+                            <p class="text-muted small mb-3">Call universal 1070 for State and 1077 for District emergency nodes.</p>
+                            <ul class="directory-list">
+                                <li>
+                                    <span class="agency-title">Maharashtra SDMA</span>
+                                    <span class="agency-num">022-22027990</span>
+                                    <button class="btn-copy-num" onclick="copyText('022-22027990')">📋 Copy</button>
+                                </li>
+                                <li>
+                                    <span class="agency-title">Odisha SDMA</span>
+                                    <span class="agency-num">0674-2395398</span>
+                                    <button class="btn-copy-num" onclick="copyText('0674-2395398')">📋 Copy</button>
+                                </li>
+                                <li>
+                                    <span class="agency-title">Uttarakhand SDMA</span>
+                                    <span class="agency-num">0135-2710334</span>
+                                    <button class="btn-copy-num" onclick="copyText('0135-2710334')">📋 Copy</button>
+                                </li>
+                                <li>
+                                    <span class="agency-title">Delhi SDMA</span>
+                                    <span class="agency-num">011-22424006</span>
+                                    <button class="btn-copy-num" onclick="copyText('011-22424006')">📋 Copy</button>
+                                </li>
+                                <li>
+                                    <span class="agency-title">Andhra Pradesh SDMA</span>
+                                    <span class="agency-num">08645-246600</span>
+                                    <button class="btn-copy-num" onclick="copyText('08645-246600')">📋 Copy</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Medical Reference Guide Card -->
+                    <div class="card col-span-2">
+                        <div class="card-header">
+                            <h2 class="card-title">🩹 Interactive Rapid First-Aid Lookup</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group mb-4">
+                                <input type="text" id="firstaid-search" class="form-control" placeholder="Search first aid (e.g. CPR, bleeding, burns)..." onkeyup="filterFirstAid()">
+                            </div>
+
+                            <div class="firstaid-cards-grid" id="firstaid-container">
+                                <!-- CPR -->
+                                <div class="firstaid-card" data-keywords="cpr chest compressions breath choking cardiac arrest heart attack">
+                                    <div class="fa-card-header">
+                                        <span class="fa-icon">❤️</span>
+                                        <h4>CPR (Cardiopulmonary Resuscitation)</h4>
+                                    </div>
+                                    <div class="fa-card-body">
+                                        <ol>
+                                            <li>Place hands centered on the chest.</li>
+                                            <li>Push hard and fast: **100–120 compressions per minute** at a depth of 2 inches.</li>
+                                            <li>Allow chest to rise fully between compressions.</li>
+                                            <li>Provide **30 compressions followed by 2 rescue breaths** if trained. Continue until help arrives.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                <!-- Bleeding -->
+                                <div class="firstaid-card" data-keywords="bleeding blood cut wound trauma injury bandage pressure tourniquet">
+                                    <div class="fa-card-header">
+                                        <span class="fa-icon">🩸</span>
+                                        <h4>Severe Bleeding Control</h4>
+                                    </div>
+                                    <div class="fa-card-body">
+                                        <ol>
+                                            <li>Apply firm, direct pressure on the wound with a clean cloth or sterile dressing.</li>
+                                            <li>Maintain continuous pressure; do not remove dressing to look. Add layers if soaked.</li>
+                                            <li>Elevate the bleeding limb above heart level if possible.</li>
+                                            <li>If bleeding is catastrophic and uncontrollable on a limb, apply a **tourniquet** high and tight.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                <!-- Heat Stroke -->
+                                <div class="firstaid-card" data-keywords="heat stroke dehydration sun stroke fever summer hot temperature delhi cooling">
+                                    <div class="fa-card-header">
+                                        <span class="fa-icon">☀️</span>
+                                        <h4>Heat Stroke Emergency</h4>
+                                    </div>
+                                    <div class="fa-card-body">
+                                        <ol>
+                                            <li>Move the casualty immediately to a cool, shaded environment.</li>
+                                            <li>Cool the body rapidly: apply wet towels, spray water, and fan the individual.</li>
+                                            <li>Place cold packs on neck, armpits, and groin.</li>
+                                            <li>Do **not** give fluids if they are unconscious or vomiting. Seek medical attention immediately.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                                <!-- Burns -->
+                                <div class="firstaid-card" data-keywords="burns fire thermal chemical burn skin cooling blister vizag">
+                                    <div class="fa-card-header">
+                                        <span class="fa-icon">🔥</span>
+                                        <h4>Thermal & Chemical Burns</h4>
+                                    </div>
+                                    <div class="fa-card-body">
+                                        <ol>
+                                            <li>Cool the burn under cool running water for at least **10 minutes**. Do not use ice.</li>
+                                            <li>Remove rings or jewelry from the burned area before it starts swelling.</li>
+                                            <li>Cover the burn loosely with sterile non-stick bandage or clean plastic wrap.</li>
+                                            <li>Do **not** pop blisters or apply oil, butter, or toothpaste.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 6: VOLUNTEER HUB -->
+            <section id="volunteer-page" class="page-section">
+                <div class="page-header">
+                    <h1 class="page-title">🤝 VOLUNTEER HUB & CITIZEN ALERTS</h1>
+                    <p class="page-subtitle">Register to offer disaster support or request local community help.</p>
+                </div>
+
+                <div class="layout-grid">
+                    <!-- Register Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">📝 Registration Form</h2>
+                        </div>
+                        <div class="card-body">
+                            <form id="volunteer-form" onsubmit="event.preventDefault(); registerVolunteer();">
+                                <div class="form-group mb-3">
+                                    <label for="vol-name">Full Name</label>
+                                    <input type="text" id="vol-name" class="form-control" required>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="vol-phone">Mobile Number</label>
+                                    <input type="tel" id="vol-phone" class="form-control" required>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="vol-skill">Core Skill Area</label>
+                                    <select id="vol-skill" class="form-control" required>
+                                        <option value="First Aid / Medical Support">First Aid / Medical Support</option>
+                                        <option value="Food & Water Distribution">Food & Water Distribution</option>
+                                        <option value="Search & Rescue Support">Search & Rescue Support</option>
+                                        <option value="Shelter Management">Shelter Management</option>
+                                        <option value="HAM Radio / Communications">HAM Radio / Communications</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-4">
+                                    <label for="vol-loc">City / District</label>
+                                    <input type="text" id="vol-loc" class="form-control" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">🙋 Submit Volunteer Application</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Volunteer Database List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">📋 Registered EOC Volunteers</h2>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="shelter-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Volunteer Name</th>
+                                            <th>Skills</th>
+                                            <th>Region Location</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="volunteer-table-body">
+                                        <!-- Injected by app.js -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layout-grid mt-4">
+                    <!-- Help Request Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🚨 Submit Local Help Request</h2>
+                        </div>
+                        <div class="card-body">
+                            <form id="help-request-form" onsubmit="event.preventDefault(); submitHelpRequest();">
+                                <div class="form-group mb-3">
+                                    <label for="help-addr">Exact Address / Location Details</label>
+                                    <input type="text" id="help-addr" class="form-control" required>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="help-req">What is needed?</label>
+                                    <textarea id="help-req" class="form-control" rows="3" placeholder="e.g. food, medical help, evacuation" required></textarea>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col">
+                                        <div class="form-group">
+                                            <label for="help-people">Headcount</label>
+                                            <input type="number" id="help-people" class="form-control" min="1" value="4" required>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="form-group">
+                                            <label for="help-urgency">Request Urgency</label>
+                                            <select id="help-urgency" class="form-control" required>
+                                                <option value="Low">Low</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="High">High</option>
+                                                <option value="Critical">Critical</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-danger w-100">🚨 Broadcast Help Request</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Citizen Request Feed -->
+                    <div class="card col-span-2">
+                        <div class="card-header">
+                            <h2 class="card-title">📋 Active EOC Citizen Requests</h2>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="shelter-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Location Address</th>
+                                            <th>Intel details</th>
+                                            <th>Count</th>
+                                            <th>Urgency Badge</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="citizen-requests-table-body">
+                                        <!-- Injected by app.js -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- App Script -->
+    <script src="app.js"></script>
+</body>
+</html>
